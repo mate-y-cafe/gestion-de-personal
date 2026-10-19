@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Personal | MATE & CAFÉ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          coffee: '#5C4033', coffeeDark: '#3E2A20', yerba: '#3B5E2B', yerbaLight: '#8BA870',
+          cream: '#FDFBF7', creamAlt: '#EFEAE1', creamDark: '#DFD7C8', wood: '#C8B29B',
+        },
+        fontFamily: { display: ['Fraunces', 'serif'], body: ['Manrope', 'sans-serif'] }
+      }
+    }
+  }
+</script>
+<style>
+  body {
+    font-family: 'Manrope', sans-serif; color: #3E2A20; background-color: #EFEAE1; min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(139,168,112,0.35), transparent 45%),
+      radial-gradient(circle at 85% 15%, rgba(200,178,155,0.45), transparent 50%),
+      radial-gradient(circle at 75% 70%, rgba(59,94,43,0.25), transparent 45%),
+      linear-gradient(160deg, #FDFBF7 0%, #EFEAE1 45%, #DFD7C8 100%);
+    background-attachment: fixed;
+  }
+  h1, h2, h3, .font-display { font-family: 'Fraunces', serif; }
+  .glass { background: rgba(253,251,247,0.55); backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%); border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 8px 32px rgba(62,42,32,0.10); }
+  .glass-dark { background: rgba(62,42,32,0.92); backdrop-filter: blur(16px); border: 1px solid rgba(253,251,247,0.18); box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+  .inp { width: 100%; background: rgba(255,255,255,0.75); border: 1px solid #DFD7C8; border-radius: 0.75rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; outline: none; }
+  .inp:focus { border-color: #3B5E2B; box-shadow: 0 0 0 3px rgba(59,94,43,0.15); }
+  .lbl { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(62,42,32,0.7); margin-bottom: 0.25rem; }
+  .btn { font-weight: 700; font-size: 0.8rem; padding: 0.55rem 1.1rem; border-radius: 9999px; transition: all .2s; }
+  .btn-primary { background: #3B5E2B; color: #fff; } .btn-primary:hover { background: #2f4c22; }
+  .btn-ghost { background: rgba(253,251,247,0.7); border: 1px solid #DFD7C8; color: #3E2A20; } .btn-ghost:hover { background: #fff; }
+  .btn-danger { color: #b3261e; } .btn-danger:hover { text-decoration: underline; }
+  .tab { padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 700; font-size: 0.8rem; white-space: nowrap; color: #3E2A20; }
+  .tab:hover { background: rgba(255,255,255,0.6); }
+  .tab.active { background: #3B5E2B; color: #fff; }
+  table.tbl { width: 100%; font-size: 0.85rem; border-collapse: collapse; }
+  table.tbl th { text-align: left; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(62,42,32,0.65); padding: 0.6rem 0.75rem; border-bottom: 1px solid #DFD7C8; white-space: nowrap; }
+  table.tbl td { padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(223,215,200,0.6); vertical-align: middle; }
+  table.tbl tr:last-child td { border-bottom: 0; }
+  .chip { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.6rem; border-radius: 9999px; }
+</style>
+</head>
+<body class="antialiased">
+
+<header class="max-w-7xl mx-auto px-3 sm:px-6 pt-4">
+  <div class="glass rounded-[2rem] px-5 py-3 flex flex-wrap items-center gap-3 justify-between">
+    <div class="flex items-center gap-2">
+      <span class="text-3xl">🧉</span>
+      <div class="leading-none">
+        <span class="block font-display font-black text-lg">MATE <span class="text-yerba">&</span> CAFÉ</span>
+        <span class="block text-[10px] uppercase tracking-widest text-coffeeDark/70">Gestión de personal</span>
+      </div>
+    </div>
+    <nav id="tabs" class="flex gap-1 overflow-x-auto max-w-full"></nav>
+    <div class="flex gap-2">
+      <button class="btn btn-ghost" onclick="exportBackup()" title="Descargar copia de seguridad">⬇ Respaldo</button>
+      <label class="btn btn-ghost cursor-pointer" title="Restaurar copia de seguridad">⬆ Restaurar<input type="file" accept="application/json" class="hidden" onchange="importBackup(event)"></label>
+    </div>
+  </div>
+</header>
+
+<main id="app" class="max-w-7xl mx-auto px-3 sm:px-6 py-6"></main>
+
+<!-- Modal empleado -->
+<div id="modal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+  <form id="emp-form" class="glass rounded-3xl p-6 w-full max-w-2xl max-h-[92vh] overflow-y-auto" onsubmit="saveEmployee(event)">
+    <div class="flex justify-between items-center mb-4">
+      <h3 id="emp-title" class="font-display font-bold text-xl">Nuevo empleado</h3>
+      <button type="button" onclick="closeModal()" class="text-xl font-bold text-coffeeDark/60 hover:text-coffeeDark">✕</button>
+    </div>
+    <input type="hidden" id="f-id">
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div><label class="lbl">Nombre completo *</label><input id="f-nombre" class="inp" required maxlength="80"></div>
+      <div><label class="lbl">DNI *</label><input id="f-dni" class="inp" required maxlength="12" inputmode="numeric"></div>
+      <div><label class="lbl">Puesto *</label><input id="f-puesto" class="inp" required maxlength="60" placeholder="Barista, Cajero/a, Cocinero/a…"></div>
+      <div><label class="lbl">Área</label>
+        <select id="f-area" class="inp"><option>Cafetería</option><option>Boutique</option><option>Cocina</option><option>Salón</option><option>Administración</option></select></div>
+      <div><label class="lbl">Fecha de ingreso *</label><input id="f-ingreso" type="date" class="inp" required></div>
+      <div><label class="lbl">Estado</label>
+        <select id="f-estado" class="inp"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
+      <div><label class="lbl">Tipo de pago</label>
+        <select id="f-tipo" class="inp"><option value="mensual">Sueldo mensual</option><option value="hora">Por hora</option></select></div>
+      <div><label class="lbl">Monto (ARS) *</label><input id="f-monto" type="number" min="0" step="1" class="inp" required></div>
+      <div><label class="lbl">Teléfono</label><input id="f-tel" class="inp" maxlength="30"></div>
+      <div><label class="lbl">Email</label><input id="f-email" type="email" class="inp" maxlength="80"></div>
+    </div>
+    <div class="flex justify-end gap-2 mt-6">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary">Guardar</button>
+    </div>
+  </form>
+</div>
+
+<div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 glass-dark text-cream text-sm font-semibold px-5 py-2.5 rounded-full hidden"></div>
+
+<script>
+/* ============ Utilidades ============ */
+const STORE_KEY = 'mc_personal_v1';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseD = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const todayStr = () => ymd(new Date());
+const money = n => (Number(n)||0).toLocaleString('es-AR', { style:'currency', currency:'ARS', maximumFractionDigits:0 });
+const fmtDate = s => s ? parseD(s).toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' }) : '';
+const DIAS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const mondayOf = s => { const d = parseD(s); d.setDate(d.getDate() - ((d.getDay()+6) % 7)); return ymd(d); };
+const addDays = (s, n) => { const d = parseD(s); d.setDate(d.getDate()+n); return ymd(d); };
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.remove('hidden');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.add('hidden'), 2200);
+}
+
+/* ============ Datos ============ */
+const emptyDB = () => ({ employees: [], turnos: {}, asistencia: [], ausencias: [], ajustes: {} });
+let db = load();
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) return Object.assign(emptyDB(), JSON.parse(raw));
+  } catch (e) { console.warn('No se pudo leer el almacenamiento', e); }
+  return emptyDB();
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+  catch (e) { toast('⚠ No se pudo guardar en el navegador'); }
+}
+
+const TURNOS = {
+  '':  { n: '— Sin asignar', h: '',            c: 'bg-white/60 text-coffeeDark/60' },
+  M:   { n: 'Mañana',        h: '07:00–15:00', c: 'bg-amber-200 text-amber-900' },
+  T:   { n: 'Tarde',         h: '15:00–23:00', c: 'bg-sky-200 text-sky-900' },
+  F:   { n: 'Franco',        h: '',            c: 'bg-stone-300 text-stone-700' },
+};
+const TIPOS_AUS = ['Vacaciones', 'Enfermedad', 'Permiso con goce', 'Permiso sin goce'];
+const activos = () => db.employees.filter(e => e.estado === 'activo');
+const empById = id => db.employees.find(e => e.id === id);
+const empName = id => empById(id)?.nombre ?? '(eliminado)';
+
+function onLeave(empId, date) {
+  return db.ausencias.find(a => a.empId === empId && a.estado === 'aprobada' && a.desde <= date && date <= a.hasta);
+}
+function hoursBetween(ent, sal) {
+  if (!ent || !sal) return 0;
+  const [h1, m1] = ent.split(':').map(Number), [h2, m2] = sal.split(':').map(Number);
+  let mins = (h2*60 + m2) - (h1*60 + m1);
+  if (mins < 0) mins += 24*60;
+  return mins / 60;
+}
+const fmtH = h => `${Math.floor(h)}h ${pad(Math.round((h % 1) * 60))}m`;
+function asistFor(empId, date) { return db.asistencia.find(a => a.empId === empId && a.fecha === date); }
+
+/* ============ Navegación ============ */
+const VIEWS = [
+  ['dashboard', '📊 Resumen'], ['empleados', '👥 Empleados'], ['turnos', '🗓 Turnos'],
+  ['asistencia', '⏱ Asistencia'], ['ausencias', '🌴 Licencias'], ['nomina', '💰 Nómina'],
+];
+let view = 'dashboard';
+let weekStart = mondayOf(todayStr());
+let attDate = todayStr();
+let payMonth = todayStr().slice(0, 7);
+let empQuery = '', empArea = '';
+
+function go(v) { view = v; render(); }
+function render() {
+  document.getElementById('tabs').innerHTML = VIEWS.map(([k, l]) =>
+    `<button class="tab ${k === view ? 'active' : ''}" onclick="go('${k}')">${l}</button>`).join('');
+  const fn = { dashboard: vDashboard, empleados: vEmpleados, turnos: vTurnos, asistencia: vAsistencia, ausencias: vAusencias, nomina: vNomina }[view];
+  document.getElementById('app').innerHTML = fn();
+  if (view === 'empleados') renderEmpTable();
+}
+
+const card = (inner, cls = '') => `<div class="glass rounded-[1.75rem] p-5 sm:p-6 ${cls}">${inner}</div>`;
+const title = (t, sub = '') => `<div class="mb-4"><h2 class="font-display font-black text-2xl">${t}</h2>${sub ? `<p class="text-xs text-coffeeDark/60 mt-0.5">${sub}</p>` : ''}</div>`;
+const empty = msg => `<p class="text-sm text-coffeeDark/60 text-center py-8">${msg}</p>`;
+
+/* ============ Resumen ============ */
+function vDashboard() {
+  const hoy = todayStr(), act = activos();
+  const enLicencia = act.filter(e => onLeave(e.id, hoy));
+  const presentes = act.filter(e => asistFor(e.id, hoy)?.entrada && !asistFor(e.id, hoy)?.salida);
+  const pendientes = db.ausencias.filter(a => a.estado === 'pendiente').length;
+  const totalNomina = act.reduce((s, e) => s + payrollFor(e, hoy.slice(0, 7)).total, 0);
+
+  const stat = (ico, val, lbl) => card(`<div class="text-3xl mb-1">${ico}</div><div class="font-display font-black text-3xl">${val}</div><div class="text-xs uppercase tracking-widest text-coffeeDark/60 font-bold">${lbl}</div>`);
+
+  const rows = act.map(e => {
+    const lic = onLeave(e.id, hoy), t = db.turnos[hoy]?.[e.id] || '', a = asistFor(e.id, hoy);
+    let estado = '<span class="chip bg-white/70 text-coffeeDark/60">Sin marcar</span>';
+    if (lic) estado = `<span class="chip bg-purple-200 text-purple-900">${esc(lic.tipo)}</span>`;
+    else if (a?.entrada && a?.salida) estado = `<span class="chip bg-stone-300 text-stone-800">Salió ${esc(a.salida)}</span>`;
+    else if (a?.entrada) estado = `<span class="chip bg-green-200 text-green-900">Presente desde ${esc(a.entrada)}</span>`;
+    return `<tr><td class="font-semibold">${esc(e.nombre)}</td><td>${esc(e.puesto)}</td>
+      <td><span class="chip ${TURNOS[t].c}">${TURNOS[t].n}</span> <span class="text-xs text-coffeeDark/50">${TURNOS[t].h}</span></td><td>${estado}</td></tr>`;
+  }).join('');
+
+  const seed = db.employees.length ? '' : card(`<div class="text-center py-4"><p class="mb-3 font-semibold">Todavía no hay empleados cargados.</p>
+    <button class="btn btn-primary" onclick="openEmployee()">+ Agregar el primero</button>
+    <button class="btn btn-ghost ml-2" onclick="seedDemo()">Cargar datos de ejemplo</button></div>`, 'mb-5');
+
+  return `${title('Resumen del día', new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' }))}
+    ${seed}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+      ${stat('👥', act.length, 'Empleados activos')}
+      ${stat('🟢', presentes.length, 'Presentes ahora')}
+      ${stat('🌴', enLicencia.length, 'En licencia hoy')}
+      ${stat('💰', money(totalNomina), 'Nómina estimada del mes')}
+    </div>
+    ${pendientes ? card(`<p class="text-sm font-semibold">⏳ Hay <b>${pendientes}</b> solicitud(es) de licencia pendiente(s). <button class="underline text-yerba font-bold" onclick="go('ausencias')">Revisar</button></p>`, 'mb-5') : ''}
+    ${card(`<h3 class="font-display font-bold text-lg mb-3">Equipo de hoy</h3>
+      ${act.length ? `<div class="overflow-x-auto"><table class="tbl"><thead><tr><th>Empleado</th><th>Puesto</th><th>Turno</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>` : empty('Sin empleados activos.')}`)}`;
+}
+
+/* ============ Empleados ============ */
+function vEmpleados() {
+  return `${title('Empleados', 'Alta, edición y baja del personal')}
+    ${card(`<div class="flex flex-wrap gap-3 items-end mb-4">
+      <div class="flex-1 min-w-[180px]"><label class="lbl">Buscar</label><input class="inp" placeholder="Nombre, DNI o puesto" value="${esc(empQuery)}" oninput="empQuery=this.value; renderEmpTable()"></div>
+      <div><label class="lbl">Área</label><select class="inp" onchange="empArea=this.value; renderEmpTable()">
+        <option value="">Todas</option>${['Cafetería','Boutique','Cocina','Salón','Administración'].map(a => `<option ${a === empArea ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
+      <button class="btn btn-primary" onclick="openEmployee()">+ Nuevo empleado</button>
+    </div><div id="emp-table"></div>`)}`;
+}
+function renderEmpTable() {
+  const q = empQuery.trim().toLowerCase();
+  const list = db.employees.filter(e =>
+    (!empArea || e.area === empArea) &&
+    (!q || [e.nombre, e.dni, e.puesto].some(v => String(v).toLowerCase().includes(q))))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const el = document.getElementById('emp-table');
+  if (!el) return;
+  el.innerHTML = list.length ? `<div class="overflow-x-auto"><table class="tbl"><thead><tr>
+    <th>Nombre</th><th>DNI</th><th>Puesto</th><th>Área</th><th>Ingreso</th><th>Pago</th><th>Estado</th><th></th></tr></thead><tbody>
+    ${list.map(e => `<tr>
+      <td><div class="font-semibold">${esc(e.nombre)}</div><div class="text-xs text-coffeeDark/50">${esc(e.telefono)} ${esc(e.email)}</div></td>
+      <td>${esc(e.dni)}</td><td>${esc(e.puesto)}</td><td>${esc(e.area)}</td><td>${fmtDate(e.ingreso)}</td>
+      <td>${money(e.monto)}<span class="text-xs text-coffeeDark/50">${e.tipoPago === 'hora' ? ' /h' : ' /mes'}</span></td>
+      <td><span class="chip ${e.estado === 'activo' ? 'bg-green-200 text-green-900' : 'bg-stone-300 text-stone-700'}">${e.estado === 'activo' ? 'Activo' : 'Inactivo'}</span></td>
+      <td class="whitespace-nowrap text-right"><button class="text-yerba font-bold text-xs mr-3 hover:underline" onclick="openEmployee('${e.id}')">Editar</button>
+        <button class="btn-danger font-bold text-xs" onclick="deleteEmployee('${e.id}')">Eliminar</button></td></tr>`).join('')}
+    </tbody></table></div>` : empty('No hay empleados que coincidan.');
+}
+function openEmployee(id) {
+  const e = id ? empById(id) : null;
+  document.getElementById('emp-title').textContent = e ? 'Editar empleado' : 'Nuevo empleado';
+  const set = (k, v) => document.getElementById('f-' + k).value = v ?? '';
+  set('id', e?.id); set('nombre', e?.nombre); set('dni', e?.dni); set('puesto', e?.puesto);
+  set('area', e?.area || 'Cafetería'); set('ingreso', e?.ingreso || todayStr()); set('estado', e?.estado || 'activo');
+  set('tipo', e?.tipoPago || 'mensual'); set('monto', e?.monto); set('tel', e?.telefono); set('email', e?.email);
+  document.getElementById('modal').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+function saveEmployee(ev) {
+  ev.preventDefault();
+  const g = k => document.getElementById('f-' + k).value.trim();
+  const id = g('id');
+  const dni = g('dni');
+  if (db.employees.some(e => e.dni === dni && e.id !== id)) return toast('⚠ Ya existe un empleado con ese DNI');
+  const data = { nombre: g('nombre'), dni, puesto: g('puesto'), area: g('area'), ingreso: g('ingreso'),
+    estado: g('estado'), tipoPago: g('tipo'), monto: Math.max(0, Number(g('monto')) || 0), telefono: g('tel'), email: g('email') };
+  if (id) Object.assign(empById(id), data);
+  else db.employees.push({ id: uid(), ...data });
+  save(); closeModal(); render(); toast('✓ Empleado guardado');
+}
+function deleteEmployee(id) {
+  const e = empById(id);
+  if (!confirm(`¿Eliminar a ${e.nombre}? Se borrarán también sus turnos, asistencias y licencias.\n\nSi solo dejó de trabajar, es mejor marcarlo como Inactivo.`)) return;
+  db.employees = db.employees.filter(x => x.id !== id);
+  db.asistencia = db.asistencia.filter(a => a.empId !== id);
+  db.ausencias = db.ausencias.filter(a => a.empId !== id);
+  for (const d in db.turnos) delete db.turnos[d][id];
+  for (const m in db.ajustes) delete db.ajustes[m][id];
+  save(); render(); toast('Empleado eliminado');
+}
+
+/* ============ Turnos ============ */
+function vTurnos() {
+  const dias = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const act = activos();
+  const head = dias.map((d, i) => `<th class="text-center ${d === todayStr() ? 'text-yerba' : ''}">${DIAS[i]}<br><span class="font-normal normal-case tracking-normal">${parseD(d).getDate()}/${parseD(d).getMonth()+1}</span></th>`).join('');
+  const rows = act.map(e => `<tr><td class="font-semibold whitespace-nowrap">${esc(e.nombre)}<div class="text-xs font-normal text-coffeeDark/50">${esc(e.puesto)}</div></td>
+    ${dias.map(d => {
+      const lic = onLeave(e.id, d);
+      if (lic) return `<td class="text-center"><span class="chip bg-purple-200 text-purple-900" title="${esc(lic.tipo)}">🌴 Licencia</span></td>`;
+      const v = db.turnos[d]?.[e.id] || '';
+      return `<td class="text-center"><select class="inp !w-auto !py-1 !px-2 text-xs font-semibold ${TURNOS[v].c}" onchange="setTurno('${d}','${e.id}',this.value)">
+        ${Object.entries(TURNOS).map(([k, t]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${k ? t.n : '—'}</option>`).join('')}</select></td>`;
+    }).join('')}</tr>`).join('');
+  const end = addDays(weekStart, 6);
+  return `${title('Turnos semanales', `Mañana 07:00–15:00 · Tarde 15:00–23:00`)}
+    ${card(`<div class="flex flex-wrap items-center gap-2 mb-4">
+      <button class="btn btn-ghost" onclick="weekStart=addDays(weekStart,-7); render()">← Anterior</button>
+      <button class="btn btn-ghost" onclick="weekStart=mondayOf(todayStr()); render()">Hoy</button>
+      <button class="btn btn-ghost" onclick="weekStart=addDays(weekStart,7); render()">Siguiente →</button>
+      <span class="font-bold text-sm ml-2">${fmtDate(weekStart)} – ${fmtDate(end)}</span>
+      <span class="flex-1"></span>
+      <button class="btn btn-ghost" onclick="copyWeek()">📋 Copiar semana anterior</button>
+    </div>
+    ${act.length ? `<div class="overflow-x-auto"><table class="tbl"><thead><tr><th>Empleado</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>` : empty('Agregá empleados activos para armar los turnos.')}`)}`;
+}
+function setTurno(d, empId, val) {
+  db.turnos[d] = db.turnos[d] || {};
+  if (val) db.turnos[d][empId] = val; else delete db.turnos[d][empId];
+  if (!Object.keys(db.turnos[d]).length) delete db.turnos[d];
+  save(); render();
+}
+function copyWeek() {
+  const prev = addDays(weekStart, -7);
+  if (!confirm('¿Copiar los turnos de la semana anterior a esta? Se reemplazan los turnos ya cargados en esta semana.')) return;
+  for (let i = 0; i < 7; i++) {
+    const src = db.turnos[addDays(prev, i)], dst = addDays(weekStart, i);
+    if (src) db.turnos[dst] = { ...src }; else delete db.turnos[dst];
+  }
+  save(); render(); toast('✓ Semana copiada');
+}
+
+/* ============ Asistencia ============ */
+function vAsistencia() {
+  const act = activos();
+  const rows = act.map(e => {
+    const a = asistFor(e.id, attDate) || {}, lic = onLeave(e.id, attDate), t = db.turnos[attDate]?.[e.id] || '';
+    const hrs = hoursBetween(a.entrada, a.salida);
+    return `<tr><td class="font-semibold">${esc(e.nombre)}</td>
+      <td><span class="chip ${TURNOS[t].c}">${TURNOS[t].n}</span></td>
+      ${lic ? `<td colspan="4"><span class="chip bg-purple-200 text-purple-900">🌴 ${esc(lic.tipo)}</span></td>` : `
+      <td><input type="time" class="inp !w-auto" value="${a.entrada || ''}" onchange="setAsist('${e.id}','entrada',this.value)"></td>
+      <td><input type="time" class="inp !w-auto" value="${a.salida || ''}" onchange="setAsist('${e.id}','salida',this.value)"></td>
+      <td class="font-semibold">${hrs ? fmtH(hrs) : '—'}</td>
+      <td class="whitespace-nowrap"><button class="text-yerba font-bold text-xs mr-3 hover:underline" onclick="markNow('${e.id}','entrada')">Entrada ahora</button>
+        <button class="text-coffee font-bold text-xs hover:underline" onclick="markNow('${e.id}','salida')">Salida ahora</button></td>`}</tr>`;
+  }).join('');
+  return `${title('Control de asistencia', 'Registro de entrada y salida por día')}
+    ${card(`<div class="flex flex-wrap items-end gap-2 mb-4">
+      <button class="btn btn-ghost" onclick="attDate=addDays(attDate,-1); render()">←</button>
+      <div><label class="lbl">Fecha</label><input type="date" class="inp" value="${attDate}" onchange="if(this.value){attDate=this.value; render()}"></div>
+      <button class="btn btn-ghost" onclick="attDate=addDays(attDate,1); render()">→</button>
+      <button class="btn btn-ghost" onclick="attDate=todayStr(); render()">Hoy</button>
+    </div>
+    ${act.length ? `<div class="overflow-x-auto"><table class="tbl"><thead><tr><th>Empleado</th><th>Turno</th><th>Entrada</th><th>Salida</th><th>Horas</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : empty('No hay empleados activos.')}
+    <p class="text-xs text-coffeeDark/50 mt-3">Si la salida es anterior a la entrada se asume que el turno cruza la medianoche.</p>`)}`;
+}
+function setAsist(empId, field, val) {
+  let a = asistFor(empId, attDate);
+  if (!a) { a = { id: uid(), empId, fecha: attDate, entrada: '', salida: '' }; db.asistencia.push(a); }
+  a[field] = val;
+  if (!a.entrada && !a.salida) db.asistencia = db.asistencia.filter(x => x !== a);
+  save(); render();
+}
+function markNow(empId, field) {
+  const n = new Date();
+  setAsist(empId, field, `${pad(n.getHours())}:${pad(n.getMinutes())}`);
+}
+
+/* ============ Licencias ============ */
+function vAusencias() {
+  const act = activos();
+  const list = [...db.ausencias].sort((a, b) => b.desde.localeCompare(a.desde));
+  const stColor = { pendiente: 'bg-amber-200 text-amber-900', aprobada: 'bg-green-200 text-green-900', rechazada: 'bg-red-200 text-red-900' };
+  const dias = a => Math.round((parseD(a.hasta) - parseD(a.desde)) / 864e5) + 1;
+  return `${title('Licencias y ausencias', 'Vacaciones, enfermedad y permisos')}
+    <div class="grid lg:grid-cols-3 gap-5">
+      ${card(`<h3 class="font-display font-bold text-lg mb-3">Nueva solicitud</h3>
+        <form onsubmit="saveAusencia(event)" class="space-y-3">
+          <div><label class="lbl">Empleado *</label><select id="a-emp" class="inp" required><option value="">Elegir…</option>${act.map(e => `<option value="${e.id}">${esc(e.nombre)}</option>`).join('')}</select></div>
+          <div><label class="lbl">Tipo</label><select id="a-tipo" class="inp">${TIPOS_AUS.map(t => `<option>${t}</option>`).join('')}</select></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="lbl">Desde *</label><input id="a-desde" type="date" class="inp" required value="${todayStr()}"></div>
+            <div><label class="lbl">Hasta *</label><input id="a-hasta" type="date" class="inp" required value="${todayStr()}"></div></div>
+          <div><label class="lbl">Motivo / nota</label><input id="a-motivo" class="inp" maxlength="120"></div>
+          <button class="btn btn-primary w-full">Registrar</button>
+        </form>`)}
+      ${card(`<h3 class="font-display font-bold text-lg mb-3">Historial</h3>
+        ${list.length ? `<div class="overflow-x-auto"><table class="tbl"><thead><tr><th>Empleado</th><th>Tipo</th><th>Período</th><th>Estado</th><th></th></tr></thead><tbody>
+        ${list.map(a => `<tr><td class="font-semibold">${esc(empName(a.empId))}<div class="text-xs font-normal text-coffeeDark/50">${esc(a.motivo)}</div></td>
+          <td>${esc(a.tipo)}</td><td class="whitespace-nowrap">${fmtDate(a.desde)} → ${fmtDate(a.hasta)}<div class="text-xs text-coffeeDark/50">${dias(a)} día(s)</div></td>
+          <td><span class="chip ${stColor[a.estado]}">${a.estado}</span></td>
+          <td class="whitespace-nowrap text-right">
+            ${a.estado !== 'aprobada' ? `<button class="text-yerba font-bold text-xs mr-2 hover:underline" onclick="setAusEstado('${a.id}','aprobada')">Aprobar</button>` : ''}
+            ${a.estado !== 'rechazada' ? `<button class="text-coffee font-bold text-xs mr-2 hover:underline" onclick="setAusEstado('${a.id}','rechazada')">Rechazar</button>` : ''}
+            <button class="btn-danger font-bold text-xs" onclick="delAus('${a.id}')">Borrar</button></td></tr>`).join('')}
+        </tbody></table></div>` : empty('Sin solicitudes registradas.')}`, 'lg:col-span-2')}
+    </div>`;
+}
+function saveAusencia(ev) {
+  ev.preventDefault();
+  const g = k => document.getElementById('a-' + k).value;
+  if (g('hasta') < g('desde')) return toast('⚠ La fecha "Hasta" no puede ser anterior a "Desde"');
+  db.ausencias.push({ id: uid(), empId: g('emp'), tipo: g('tipo'), desde: g('desde'), hasta: g('hasta'), motivo: g('motivo').trim(), estado: 'pendiente' });
+  save(); render(); toast('✓ Solicitud registrada (pendiente de aprobación)');
+}
+function setAusEstado(id, estado) { db.ausencias.find(a => a.id === id).estado = estado; save(); render(); }
+function delAus(id) { if (confirm('¿Borrar esta solicitud?')) { db.ausencias = db.ausencias.filter(a => a.id !== id); save(); render(); } }
+
+/* ============ Nómina ============ */
+function monthRange(m) {
+  const [y, mo] = m.split('-').map(Number);
+  return { from: `${m}-01`, to: `${m}-${pad(new Date(y, mo, 0).getDate())}` };
+}
+function leaveDaysInMonth(empId, m, soloSinGoce) {
+  const { from, to } = monthRange(m);
+  let n = 0;
+  db.ausencias.filter(a => a.empId === empId && a.estado === 'aprobada' && (!soloSinGoce || a.tipo === 'Permiso sin goce')).forEach(a => {
+    const s = a.desde > from ? a.desde : from, e = a.hasta < to ? a.hasta : to;
+    if (s <= e) n += Math.round((parseD(e) - parseD(s)) / 864e5) + 1;
+  });
+  return n;
+}
+function payrollFor(e, m) {
+  const { from, to } = monthRange(m);
+  const horas = db.asistencia.filter(a => a.empId === e.id && a.fecha >= from && a.fecha <= to)
+    .reduce((s, a) => s + hoursBetween(a.entrada, a.salida), 0);
+  const base = e.tipoPago === 'hora' ? horas * e.monto : e.monto;
+  const sinGoce = e.tipoPago === 'mensual' ? (e.monto / 30) * leaveDaysInMonth(e.id, m, true) : 0;
+  const adj = db.ajustes[m]?.[e.id] || { extras: 0, descuentos: 0 };
+  return { horas, base, sinGoce, extras: adj.extras, descuentos: adj.descuentos, total: Math.max(0, base - sinGoce + adj.extras - adj.descuentos) };
+}
+function vNomina() {
+  const act = activos();
+  const rows = act.map(e => {
+    const p = payrollFor(e, payMonth);
+    return `<tr><td class="font-semibold">${esc(e.nombre)}<div class="text-xs font-normal text-coffeeDark/50">${esc(e.puesto)}</div></td>
+      <td>${e.tipoPago === 'hora' ? `${money(e.monto)}/h` : 'Mensual'}</td>
+      <td>${fmtH(p.horas)}</td><td>${money(p.base)}</td>
+      <td class="text-red-700">${p.sinGoce ? '−' + money(p.sinGoce) : '—'}</td>
+      <td><input type="number" min="0" class="inp !w-28" value="${p.extras}" onchange="setAjuste('${e.id}','extras',this.value)"></td>
+      <td><input type="number" min="0" class="inp !w-28" value="${p.descuentos}" onchange="setAjuste('${e.id}','descuentos',this.value)"></td>
+      <td class="font-black">${money(p.total)}</td></tr>`;
+  }).join('');
+  const total = act.reduce((s, e) => s + payrollFor(e, payMonth).total, 0);
+  return `${title('Nómina mensual', 'Estimación simple: sin cargas sociales ni retenciones impositivas')}
+    ${card(`<div class="flex flex-wrap items-end gap-3 mb-4">
+      <div><label class="lbl">Mes</label><input type="month" class="inp" value="${payMonth}" onchange="if(this.value){payMonth=this.value; render()}"></div>
+      <span class="flex-1"></span>
+      <button class="btn btn-ghost" onclick="exportCSV()">⬇ Exportar CSV</button>
+    </div>
+    ${act.length ? `<div class="overflow-x-auto"><table class="tbl"><thead><tr><th>Empleado</th><th>Pago</th><th>Horas</th><th>Base</th><th>Sin goce</th><th>Extras</th><th>Descuentos</th><th>Total</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="7" class="text-right font-bold pt-3">Total del mes</td><td class="font-display font-black text-lg pt-3">${money(total)}</td></tr></tfoot></table></div>` : empty('No hay empleados activos.')}
+    <p class="text-xs text-coffeeDark/50 mt-3">Por hora: horas registradas en Asistencia × valor hora. Mensual: sueldo fijo, menos 1/30 por cada día de "Permiso sin goce" aprobado.</p>`)}`;
+}
+function setAjuste(empId, field, val) {
+  db.ajustes[payMonth] = db.ajustes[payMonth] || {};
+  db.ajustes[payMonth][empId] = db.ajustes[payMonth][empId] || { extras: 0, descuentos: 0 };
+  db.ajustes[payMonth][empId][field] = Math.max(0, Number(val) || 0);
+  save(); render();
+}
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+function exportCSV() {
+  const q = v => `"${String(v).replace(/"/g, '""')}"`;
+  const lines = [['Empleado','DNI','Puesto','Tipo de pago','Horas','Base','Sin goce','Extras','Descuentos','Total'].map(q).join(',')];
+  activos().forEach(e => {
+    const p = payrollFor(e, payMonth);
+    lines.push([e.nombre, e.dni, e.puesto, e.tipoPago, p.horas.toFixed(2), Math.round(p.base), Math.round(p.sinGoce), p.extras, p.descuentos, Math.round(p.total)].map(q).join(','));
+  });
+  download(`nomina-${payMonth}.csv`, '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8');
+}
+
+/* ============ Respaldo y demo ============ */
+function exportBackup() { download(`personal-respaldo-${todayStr()}.json`, JSON.stringify(db, null, 2), 'application/json'); }
+function importBackup(ev) {
+  const file = ev.target.files[0]; ev.target.value = '';
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!Array.isArray(d.employees) || !Array.isArray(d.asistencia) || !Array.isArray(d.ausencias)) throw new Error('formato');
+      if (!confirm('Esto reemplaza todos los datos actuales con los del respaldo. ¿Continuar?')) return;
+      db = Object.assign(emptyDB(), d); save(); render(); toast('✓ Respaldo restaurado');
+    } catch (e) { toast('⚠ El archivo no es un respaldo válido'); }
+  };
+  r.readAsText(file);
+}
+function seedDemo() {
+  const mk = (nombre, dni, puesto, area, ingreso, tipoPago, monto) => ({ id: uid(), nombre, dni, puesto, area, ingreso, estado: 'activo', tipoPago, monto, telefono: '', email: '' });
+  db.employees = [
+    mk('Lucía Fernández', '30111222', 'Barista', 'Cafetería', '2024-03-01', 'mensual', 780000),
+    mk('Martín Gómez', '33222333', 'Cajero', 'Salón', '2024-08-15', 'hora', 4500),
+    mk('Camila Ríos', '35333444', 'Vendedora de boutique', 'Boutique', '2025-01-10', 'mensual', 720000),
+    mk('Julián Paz', '36444555', 'Cocinero', 'Cocina', '2023-11-20', 'mensual', 850000),
+  ];
+  const wk = mondayOf(todayStr()), pat = ['M', 'M', 'T', 'T', 'M', 'T', 'F'];
+  db.employees.forEach((e, k) => { for (let i = 0; i < 7; i++) { const d = addDays(wk, i); db.turnos[d] = db.turnos[d] || {}; db.turnos[d][e.id] = pat[(i + k) % 7]; } });
+  save(); render(); toast('✓ Datos de ejemplo cargados');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+render();
+</script>
+</body>
+</html>
